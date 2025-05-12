@@ -55,8 +55,14 @@ class NoiseRemovalProvider with ChangeNotifier {
 
       if (_recorder.isRecording) return;
 
-      final dir = await getApplicationDocumentsDirectory();
-      _audioFilePath = '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      // Get the Downloads directory for the app
+      final dir = await getExternalStorageDirectory();
+      final downloadDir = Directory('${dir?.path}/Downloads');
+      if (!await downloadDir.exists()) {
+        await downloadDir.create(recursive: true);
+      }
+
+      _audioFilePath = '${downloadDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
 
       await _recorder.startRecorder(toFile: _audioFilePath);
       _isRecording = true;
@@ -68,11 +74,16 @@ class NoiseRemovalProvider with ChangeNotifier {
     }
   }
 
+
   Future<void> stopRecording() async {
     try {
       if (!_recorder.isRecording) return;
-      await _recorder.stopRecorder();
+
+      final recordedPath = await _recorder.stopRecorder(); // capture the file path
+      _audioFilePath = recordedPath; // save it
       _isRecording = false;
+
+      print('Recording saved to: $_audioFilePath'); // debug log
       notifyListeners();
     } catch (e) {
       _errorMessage = 'Erreur à l\'arrêt de l\'enregistrement : $e';
@@ -175,38 +186,41 @@ class NoiseRemovalProvider with ChangeNotifier {
     }
   }
   Future<void> playRecordedAudio() async {
+
+    print("Trying to play: $_audioFilePath");
+
     try {
-      if (_audioFilePath == null) {
-        _errorMessage = 'Aucun fichier audio à lire.';
+      if (_audioFilePath == null || !File(_audioFilePath!).existsSync()) {
+        _errorMessage = 'No audio file found.';
         notifyListeners();
         return;
       }
 
-      // Ensure the player is open
-      if (!_player.isOpen()) {
-        await _player.openPlayer();
-      }
+      if (_player.isPlaying) await _player.stopPlayer();
 
-      // Stop any existing playback first
-      if (_player.isPlaying) {
-        await _player.stopPlayer();
-      }
+      if (!_player.isOpen()) await _player.openPlayer();
+
+      await _player.setVolume(1.0);
 
       await _player.startPlayer(
         fromURI: _audioFilePath!,
-        codec: Codec.aacADTS, // Adjust codec if needed based on your file type
+        codec: Codec.aacADTS,  // Ensure codec is correct for your file
         whenFinished: () {
-          notifyListeners(); // To update UI when finished
+          print('Playback finished');
+          notifyListeners();
         },
       );
 
       _errorMessage = null;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Erreur de lecture de l’audio : $e';
+      _errorMessage = 'Playback error: $e';
       notifyListeners();
     }
   }
+
+
+
 
 
   @override
@@ -216,3 +230,5 @@ class NoiseRemovalProvider with ChangeNotifier {
     super.dispose();
   }
 }
+
+  
