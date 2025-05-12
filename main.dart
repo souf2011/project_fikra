@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'NoiseRemovelProvider.dart';
 import 'mainscreen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ← Important pour path_provider
+
   runApp(
     MultiProvider(
       providers: [
@@ -22,6 +24,5 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       home: MainScreen(),
     );
-
   }
 }
