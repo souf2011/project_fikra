@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'NoiseRemovelProvider.dart'; // Import the provider
+import 'NoiseRemovelProvider.dart';
 
 class MainScreen extends StatelessWidget {
   @override
@@ -21,22 +21,39 @@ class MainScreen extends StatelessWidget {
               onPressed: provider.isProcessing
                   ? null
                   : () {
-                // You can add file picker here to pick the audio
-                // For example, using the `file_picker` package
-                print('Upload functionality needs to be implemented');
+                provider.UploadAudio();
               },
-              child: Text(provider.isProcessing ? 'Processing...' : 'Upload Audio'),
+              child:
+              Text(provider.isProcessing ? 'Processing...' : 'Upload Audio'),
             ),
             SizedBox(height: 10),
 
-            // Button to start/stop recording
+            // Record Button
             ElevatedButton(
               onPressed: provider.isProcessing
                   ? null
-                  : (provider.isRecording ? provider.stopRecording : provider.startRecording),
+                  : () {
+                if (provider.isRecording) {
+                  provider.stopRecording();
+                } else {
+                  provider.startRecording();
+                }
+              },
               child: Text(provider.isRecording ? 'Stop Recording' : 'Start Recording'),
             ),
+
             SizedBox(height: 10),
+
+            // Send recorded audio for processing
+            ElevatedButton(
+              onPressed: provider.isProcessing || provider.audioFilePath == null
+                  ? null
+                  : () {
+                provider.sendRecordedAudioForProcessing();
+              },
+              child: Text('Process Recorded Audio'),
+            ),
+            SizedBox(height: 20),
 
             // Show recording status
             if (provider.isRecording) ...[
@@ -44,41 +61,37 @@ class MainScreen extends StatelessWidget {
               CircularProgressIndicator(),
             ],
 
-            // Show error message if any
-            if (provider.errorMessage != null) ...[
-              Text(provider.errorMessage!, style: TextStyle(color: Colors.red)),
+            // Show processing status
+            if (provider.isProcessing && !provider.isRecording) ...[
+              Text('Processing...'),
+              CircularProgressIndicator(),
             ],
 
             SizedBox(height: 20),
 
-            // Show Play Recorded Audio button if audio is recorded
-            if (provider.audioFilePath != null) ...[
+            // Show error message if any
+            if (provider.errorMessage != null) ...[
+              Text(
+                provider.errorMessage!,
+                style: TextStyle(color: Colors.red),
+              ),
+            ], SizedBox(height: 20),
+
               ElevatedButton(
                 onPressed: () {
-                  // Handle playing the recorded audio
-                  print('Play Recorded Audio');
+                  print("Play button pressed");
+                  provider.playRecordedAudio();
                 },
                 child: Text('Play Recorded Audio'),
               ),
-            ],
 
-            // Show Processed Audio Button if available
+
             if (provider.processedAudioPath != null) ...[
-              ElevatedButton(
-                onPressed: () {
-                  // Handle playing the processed audio
-                  print('Play Processed Audio');
-                },
-                child: Text('Play Processed Audio'),
+              Text(
+                'Processed audio saved at:',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            ],
-
-            // Upload the recorded audio for processing
-            if (provider.audioFilePath != null && !provider.isProcessing) ...[
-              ElevatedButton(
-                onPressed: provider.uploadAudio,
-                child: Text('Upload and Process Audio'),
-              ),
+              Text(provider.processedAudioPath!),
             ]
           ],
         ),
