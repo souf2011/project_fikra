@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'NoiseRemovelProvider.dart';
+import 'NoiseRemovalProvider.dart';
 
 class MainScreen extends StatelessWidget {
   @override
@@ -76,16 +76,19 @@ class MainScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.red),
               ),
             ], SizedBox(height: 20),
-
-              ElevatedButton(
-                onPressed: () {
-                  print("Play button pressed");
-                  provider.playRecordedAudio();
-                },
-                child: Text('Play Recorded Audio'),
-              ),
-
-
+            ElevatedButton(
+              onPressed: () {
+                provider.playProcessedAudio();
+              },
+              child: Text("play prosseced audio"),
+            ),SizedBox(height :30),
+            ElevatedButton(
+              onPressed: () {
+                print("Play button pressed");
+                provider.playRecordedAudio();
+              },
+              child: Text('Play Recorded Audio'),
+            ),
             if (provider.processedAudioPath != null) ...[
               Text(
                 'Processed audio saved at:',
