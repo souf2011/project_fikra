@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'NoiseRemovelProvider.dart';
+import 'NoiseRemovalProvider.dart';
 import 'mainscreen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ← Important pour path_provider
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure initialization for path_provider
 
   runApp(
     MultiProvider(
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Audio Noise Remover',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: MainScreen(),
+      home: MainScreen(), // MainScreen is now wrapped inside the provider context
     );
   }
 }
