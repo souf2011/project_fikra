@@ -5,13 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:just_audio/just_audio.dart';
 
 class NoiseRemovalProvider with ChangeNotifier {
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   final FlutterSoundPlayer _player = FlutterSoundPlayer();
   bool _isRecording = false;
   bool _isProcessing = false;
-
 
   String? _audioFilePath;
   String? _processedAudioPath;
@@ -22,51 +22,67 @@ class NoiseRemovalProvider with ChangeNotifier {
   String? get audioFilePath => _audioFilePath;
   String? get processedAudioPath => _processedAudioPath;
   String? get errorMessage => _errorMessage;
-
   NoiseRemovalProvider() {
-    _initRecorder();
-    _initPlayer();
+    _initialize(); // Important!
   }
 
+  Future<void> _initialize() async {
+    await _initRecorder();
+    await _initPlayer();
+  }
   Future<void> _initRecorder() async {
     try {
       await Permission.microphone.request();
       await _recorder.openRecorder();
     } catch (e) {
-      _errorMessage = 'Échec de l\'initialisation du micro : $e';
+      _errorMessage = 'Failed to initialize recorder: $e';
       notifyListeners();
     }
   }
   Future<void> _initPlayer() async {
-    await _player.openPlayer();
+    try {
+      if (!_player.isOpen()) {
+        await _player.openPlayer();
+        print('🎧 Player initialized successfully');
+      } else {
+        print('🎧 Player is already open');
+      }
+    } catch (e) {
+      _errorMessage = 'Player initialization failed: $e';
+      notifyListeners();
+    }
   }
+
 
   Future<void> startRecording() async {
     try {
       var micStatus = await Permission.microphone.status;
-      if (!micStatus.isGranted) {
-        micStatus = await Permission.microphone.request();
-        if (!micStatus.isGranted) {
-          _errorMessage = 'Permission micro refusée';
-          notifyListeners();
-          return;
-        }
+      var storageStatus = await Permission.storage.status;
+
+      if (!micStatus.isGranted) micStatus = await Permission.microphone.request();
+      if (!storageStatus.isGranted) storageStatus = await Permission.storage.request();
+
+      if (!micStatus.isGranted || !storageStatus.isGranted) {
+        _errorMessage = 'Permissions refusées (microphone ou stockage)';
+        notifyListeners();
+        return;
       }
 
       if (_recorder.isRecording) return;
 
-      // Get the Downloads directory for the app
-      final dir = await getExternalStorageDirectory();
-      final downloadDir = Directory('${dir?.path}/Downloads');
+      // 🔧 Save directly to real Downloads folder in a supported format (AAC)
+      final downloadDir = Directory('/storage/emulated/0/Download');
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
       }
 
-      _audioFilePath = '${downloadDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+      _audioFilePath = '${downloadDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac'; // Use AAC as an alternative
+      print('Recording saved to: $_audioFilePath');
 
-      await _recorder.startRecorder(toFile: _audioFilePath);
+      await _recorder.startRecorder(toFile: _audioFilePath,codec: Codec.aacADTS,);
       _isRecording = true;
       _errorMessage = null;
+
       notifyListeners();
     } catch (e) {
       _errorMessage = 'Erreur au démarrage de l’enregistrement : $e';
@@ -91,7 +107,7 @@ class NoiseRemovalProvider with ChangeNotifier {
     }
   }
 
-  /// Upload a picked audio file for processing
+
   Future<void> UploadAudio() async {
     _isProcessing = true;
     _errorMessage = null;
@@ -219,6 +235,24 @@ class NoiseRemovalProvider with ChangeNotifier {
     }
   }
 
+  Future<void> playProcessedAudio() async {
+    if (_processedAudioPath == null) {
+      _errorMessage = 'No processed audio available.';
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final player = AudioPlayer();
+      await player.setFilePath(_processedAudioPath!);
+      await player.play();
+    } catch (e) {
+      _errorMessage = 'Playback failed: $e';
+      notifyListeners();
+    }
+  }
+
+
 
 
 
@@ -231,4 +265,3 @@ class NoiseRemovalProvider with ChangeNotifier {
   }
 }
 
-  
